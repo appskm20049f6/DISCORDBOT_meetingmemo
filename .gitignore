@@ -1,0 +1,10 @@
+.env
+state.json
+output/
+data/
+node_modules/
+*.log
+
+# 含人員/伺服器專屬資料，不推上去（本機保留）
+config.json
+COWORK.md

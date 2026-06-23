@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>內部任務看板</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>📋 內部任務看板</h1>
+    <div class="toolbar">
+      <button id="btnNew">＋ 新增任務</button>
+      <button id="btnImport">⤵ 匯入 JSON</button>
+      <button id="btnAddMember">＋ 新增成員</button>
+      <button id="btnReload">↻ 重新整理</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- 左：人員 -->
+    <aside id="sidebar">
+      <div class="side-title">成員</div>
+      <ul id="memberList"></ul>
+    </aside>
+
+    <!-- 中：專案分類 -->
+    <aside id="projectPane">
+      <div class="side-title" id="projectPaneTitle">專案分類</div>
+      <ul id="projectList"></ul>
+    </aside>
+
+    <!-- 右：任務（依狀態分三欄） -->
+    <section id="detail">
+      <div class="detail-head">
+        <span id="detailName">← 請從左側選擇成員</span>
+        <span style="flex:1"></span>
+        <button id="btnNotifyProject" class="hidden">🔔 整個專案一次推送</button>
+        <button id="btnNewForPerson" class="hidden">＋ 在此分類新增任務</button>
+      </div>
+      <div id="kanban" class="kanban"></div>
+    </section>
+  </div>
+
+  <!-- 任務編輯 / 完成回報 -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <button class="close" id="modalClose">✕</button>
+
+      <div class="modal-main">
+        <h2 id="modalTitle">任務</h2>
+
+        <label>標題</label>
+        <input id="fTitle" type="text" />
+
+        <label>內容說明</label>
+        <textarea id="fDesc" rows="3"></textarea>
+
+        <div class="row">
+          <div>
+            <label>負責人</label>
+            <select id="fAssignee"></select>
+          </div>
+          <div>
+            <label>專案分類（可改選任何專案）</label>
+            <select id="fProject"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>狀態</label>
+            <select id="fStatus">
+              <option value="todo">尚未開始</option>
+              <option value="doing">進行中</option>
+              <option value="done">已完成</option>
+              <option value="archived">已封存</option>
+            </select>
+          </div>
+          <div>
+            <label>任務性質</label>
+            <select id="fRecurrence">
+              <option value="once">單次</option>
+              <option value="daily">每日</option>
+              <option value="weekly">每週</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>開始時間（可不填）</label>
+            <input id="fStart" type="date" />
+          </div>
+          <div>
+            <label>結束時間 / 期限（可不填）</label>
+            <input id="fDue" type="date" />
+          </div>
+        </div>
+
+        <hr />
+        <h3>✅ 完成回報</h3>
+        <label>說明（完成了什麼）</label>
+        <textarea id="fNote" rows="3" placeholder="可直接在這裡貼上複製的圖片（Ctrl+V）"></textarea>
+        <div class="paste-hint">提示：游標放在上面文字框，按 Ctrl+V 可貼上截圖</div>
+        <div id="imgPreview" class="img-preview"></div>
+
+        <div class="modal-actions">
+          <button id="btnDelete" class="danger">刪除</button>
+          <span style="flex:1"></span>
+          <button id="btnNotify">🔔 推送通知</button>
+          <button id="btnSave">儲存</button>
+          <button id="btnComplete" class="primary">標記完成並回報</button>
+        </div>
+      </div>
+
+      <!-- 右側月曆（任務有日期時顯示） -->
+      <div class="modal-cal hidden" id="calPanel">
+        <div class="cal-head">
+          <button id="calPrev" type="button">‹</button>
+          <span id="calTitle"></span>
+          <button id="calNext" type="button">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">
+          <span><i class="dot today"></i>今天</span>
+          <span><i class="dot due"></i>本任務日期</span>
+          <span><i class="dot has"></i>有任務</span>
+        </div>
+        <div class="cal-daylist" id="calDayList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

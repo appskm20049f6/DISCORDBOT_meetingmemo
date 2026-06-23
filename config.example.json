@@ -1,0 +1,25 @@
+{
+  "guildId": "你的伺服器ID",
+  "output_dir": "output",
+  "schedule_times": ["10:00", "17:00"],
+  "history_limit_per_channel": 1000,
+  "projectChannels": {
+    "專案名稱": "對應討論群頻道ID"
+  },
+  "channelLabels": {
+    "頻道ID": "顯示名稱"
+  },
+  "virtualBoards": [
+    { "title": "共用看板標題", "channelId": "頻道ID", "projects": ["專案A", "專案B"] }
+  ],
+  "reminderBoards": {
+    "channelName": "工作提醒",
+    "groups": [
+      { "categoryId": "分類ID", "project": "專案名稱" }
+    ]
+  },
+  "channels": [
+    { "id": "討論群頻道ID", "label": "討論群名稱" },
+    { "id": "備忘錄頻道ID", "label": "備忘錄名稱" }
+  ]
+}

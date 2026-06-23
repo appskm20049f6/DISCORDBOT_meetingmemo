@@ -1,0 +1,23 @@
+{
+  "name": "discordbot-meetingmemo",
+  "version": "1.0.0",
+  "description": "Discord 版塊文字收集 bot + 內部任務看板網頁",
+  "type": "module",
+  "scripts": {
+    "collect": "node src/bot.js --once",
+    "collect:daily": "node src/bot.js --recent 1",
+    "schedule": "node src/bot.js",
+    "members": "node src/bot.js --sync-members",
+    "channels": "node src/bot.js --list-channels",
+    "groups": "node src/bot.js --list-groups",
+    "setup-boards": "node src/bot.js --setup-boards",
+    "update-boards": "node src/bot.js --update-boards",
+    "web": "node src/server.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1"
+  }
+}

@@ -1,0 +1,157 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+  background: #1e2127;
+  color: #e6e6e6;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: #2b2f3a; border-bottom: 1px solid #3a3f4b;
+  flex: 0 0 auto;
+}
+h1 { font-size: 20px; margin: 0; }
+.toolbar button, .modal button, #btnNewForPerson {
+  background: #3a3f4b; color: #e6e6e6; border: 1px solid #4a4f5b;
+  padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+.toolbar button:hover, .modal button:hover, #btnNewForPerson:hover { background: #474d5b; }
+button.primary { background: #5865f2; border-color: #5865f2; color: #fff; }
+button.primary:hover { background: #4752c4; }
+button.danger { background: #57333a; border-color: #7a3b44; }
+.hidden { display: none !important; }
+
+.layout { display: flex; flex: 1 1 auto; min-height: 0; }
+
+/* 左：人員 / 中：專案 */
+#sidebar, #projectPane {
+  background: #252932; border-right: 1px solid #343a46; overflow-y: auto; padding: 12px 0;
+}
+#sidebar { width: 230px; flex: 0 0 230px; }
+#projectPane { width: 220px; flex: 0 0 220px; }
+.side-title { font-size: 12px; color: #8a909c; padding: 4px 16px 10px; letter-spacing: 1px; }
+#memberList, #projectList { list-style: none; margin: 0; padding: 0; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.nav-item:hover { background: #2f3440; }
+.nav-item.active { background: #2f3440; border-left-color: #5865f2; }
+.nav-item .avatar { width: 30px; height: 30px; border-radius: 50%; background: #555; flex: 0 0 30px; }
+.nav-item .n-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item .n-total { font-size: 12px; color: #8a909c; }
+.nav-item .proj-ico { font-size: 16px; flex: 0 0 auto; }
+.badge-new {
+  background: #ed4245; color: #fff; font-size: 11px; font-weight: 700;
+  min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 9px; padding: 0 5px;
+}
+.pane-empty { color: #6a707c; font-size: 13px; padding: 20px 16px; }
+
+/* 右：任務看板（三欄） */
+#detail { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.detail-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; border-bottom: 1px solid #343a46; flex: 0 0 auto;
+}
+#detailName { font-size: 18px; font-weight: 600; }
+.kanban { display: flex; gap: 16px; padding: 20px; overflow-x: auto; flex: 1 1 auto; align-items: flex-start; }
+.kanban-col {
+  background: #20242c; border: 1px solid #343a46; border-radius: 10px;
+  flex: 1 1 0; min-width: 240px; max-width: 420px; padding: 12px; display: flex; flex-direction: column;
+}
+.kanban-col h3 { font-size: 14px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.kanban-col .col-count { font-size: 12px; color: #8a909c; margin-left: auto; }
+.col-dot { width: 9px; height: 9px; border-radius: 50%; }
+.col-dot.todo { background: #8a909c; }
+.col-dot.doing { background: #5b8def; }
+.col-dot.done { background: #43b581; }
+.col-dot.archived { background: #6a707c; }
+.kanban-col.archived-col { opacity: .82; }
+.full-empty { color: #6a707c; font-size: 14px; padding: 40px; text-align: center; }
+
+.card {
+  background: #2f3440; border: 1px solid #3c4250; border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+}
+.card:hover { border-color: #5865f2; }
+.card.is-new { border-color: #5b8def; }  /* 新任務=藍框（紅色只留給逾期）*/
+/* 快到期（2天內）→ 金光 */
+.card.soon { border-color: #e0a23a; box-shadow: 0 0 9px 1px rgba(224,162,58,.6); }
+/* 已逾期 → 紅框 */
+.card.overdue { border-color: #ff5c5c; box-shadow: 0 0 0 1px rgba(255,92,92,.5) inset; }
+.card .title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card .tag-new { background: #ed4245; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+.card .desc { font-size: 12px; color: #a9afbc; margin-top: 6px; white-space: pre-wrap; max-height: 90px; overflow: hidden; }
+.card .done-mark { font-size: 12px; color: #6fcf97; margin-top: 6px; }
+.card .due { font-size: 12px; margin-top: 6px; color: #d8a657; }
+.card .due.overdue { color: #ff6b6b; font-weight: 600; }
+.card.dragging { opacity: .45; }
+.kanban-col.drop-hover { border-color: #5865f2; background: #262b36; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal.hidden { display: none; }
+.modal-box {
+  background: #2b2f3a; border: 1px solid #3a3f4b; border-radius: 12px;
+  max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative;
+  display: flex; gap: 20px;
+}
+.modal-main { width: 560px; max-width: 100%; }
+.modal-cal { width: 280px; flex: 0 0 280px; border-left: 1px solid #3a3f4b; padding-left: 18px; padding-top: 36px; }
+.modal-cal.hidden { display: none; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+.cal-head span { font-size: 14px; font-weight: 600; }
+.cal-head button { background: #3a3f4b; border: 1px solid #4a4f5b; color: #e6e6e6; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-grid .cell { text-align: center; font-size: 12px; padding: 6px 0; border-radius: 6px; color: #c5cbd6; }
+.cal-grid .pick { cursor: pointer; }
+.cal-grid .pick:hover { background: #3a3f4b; }
+.cal-grid .head { color: #7a808c; font-size: 11px; padding: 2px 0; }
+.cal-grid .empty { background: transparent; }
+.cal-grid .today { background: #3a5a8a; color: #fff; font-weight: 700; }
+.cal-grid .due { background: #b5563f; color: #fff; font-weight: 700; }
+.cal-grid .today.due { background: linear-gradient(135deg,#3a5a8a 50%,#b5563f 50%); }
+.cal-legend { display: flex; gap: 14px; margin-top: 12px; font-size: 12px; color: #9aa0ac; }
+.cal-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.cal-legend .dot.today { background: #3a5a8a; }
+.cal-legend .dot.due { background: #b5563f; }
+.cal-legend .dot.has { background: #d8a657; }
+/* 有任務的日子：數字下方一個小點 */
+.cal-grid .cell { position: relative; }
+.cal-grid .cell.has-task::after {
+  content: ""; position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: #d8a657;
+}
+.cal-grid .today.has-task::after, .cal-grid .due.has-task::after { background: #fff; }
+/* 當天任務清單 */
+.cal-daylist { margin-top: 14px; max-height: 220px; overflow-y: auto; }
+.cal-daylist .dl-title { font-size: 12px; color: #9aa0ac; margin-bottom: 6px; }
+.cal-daylist .dl-item {
+  padding: 7px 9px; border: 1px solid #3a3f4b; border-radius: 6px; margin-bottom: 6px;
+  cursor: pointer; font-size: 12px; line-height: 1.3;
+}
+.cal-daylist .dl-item:hover { border-color: #5865f2; background: #2f3440; }
+.cal-daylist .dl-meta { color: #8a909c; font-size: 11px; margin-top: 2px; }
+.modal-box h2 { margin: 0 0 14px; font-size: 18px; }
+.modal-box label { display: block; font-size: 12px; color: #9aa0ac; margin: 10px 0 4px; }
+.modal-box input, .modal-box textarea, .modal-box select {
+  width: 100%; background: #1e2127; color: #e6e6e6; border: 1px solid #3a3f4b;
+  border-radius: 6px; padding: 8px; font-size: 14px; font-family: inherit;
+}
+.modal-box .row { display: flex; gap: 12px; }
+.modal-box .row > div { flex: 1; }
+.modal-box hr { border: none; border-top: 1px solid #3a3f4b; margin: 16px 0; }
+.close { position: absolute; top: 12px; right: 12px; background: transparent !important; border: none !important; font-size: 18px; }
+.modal-actions { display: flex; gap: 8px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.paste-hint { font-size: 11px; color: #7a808c; margin-top: 4px; }
+.img-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.img-preview .thumb { position: relative; }
+.img-preview img { max-height: 90px; border-radius: 6px; border: 1px solid #3a3f4b; }
+.img-preview .rm {
+  position: absolute; top: -6px; right: -6px; background: #57333a; border: 1px solid #7a3b44;
+  border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 18px; text-align: center;
+}
