@@ -24,7 +24,30 @@ async function load() {
   state = await api("/api/state");
   renderAll();
 }
-function renderAll() { renderMembers(); renderProjects(); renderKanban(); }
+const STATUS_TXT = { todo: "尚未開始", doing: "進行中", done: "已完成", archived: "已封存" };
+function renderAll() { renderMembers(); renderProjects(); renderTodayPane(); renderKanban(); }
+
+// 中間欄下方：選了人後，列出那個人「今天有事」的任務（跨專案），點可開
+function renderTodayPane() {
+  const pane = $("#todayPane");
+  if (!pane) return;
+  if (selAssignee === undefined) { pane.innerHTML = ""; return; }
+  const today = todayStr();
+  const list = tasksByAssignee(selAssignee)
+    .filter((t) => t.status !== "done" && t.status !== "archived" && occupies(t, today))
+    .sort((a, b) => (a.dueDate || a.startDate || "9999").localeCompare(b.dueDate || b.startDate || "9999"));
+  let html = `<div class="today-title">📅 今天 ${today}${list.length ? `・${list.length} 件` : ""}</div>`;
+  if (list.length === 0) {
+    html += '<div class="today-empty">沒有今日到期的任務</div>';
+  } else {
+    html += list.map((t) =>
+      `<div class="today-item" data-id="${t.id}"><div>${esc(t.title)}</div>` +
+      `<div class="today-meta">${esc(t.project || "未分類")}・${STATUS_TXT[t.status] || t.status}</div></div>`
+    ).join("");
+  }
+  pane.innerHTML = html;
+  pane.querySelectorAll(".today-item").forEach((el) => { el.onclick = () => openModal(el.dataset.id); });
+}
 
 function tasksByAssignee(a) {
   const t = a === UNASSIGNED ? null : a;
@@ -74,7 +97,7 @@ function renderProjects() {
 
   const list = tasksByAssignee(selAssignee);
   const projects = [...new Set(list.map(projOf))].sort();
-  if (projects.length === 0) { ul.innerHTML = '<li class="pane-empty">這個人沒有任務</li>'; return; }
+  if (projects.length === 0) { ul.innerHTML = '<li class="pane-empty">目前尚未使用本功能</li>'; return; }
 
   for (const p of projects) {
     const pt = list.filter((t) => projOf(t) === p);

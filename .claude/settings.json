@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run collect:daily)",
+      "Bash(node src/bot.js:*)",
+      "Bash(curl:*)",
+      "Read(//**)",
+      "Write(//**)"
+    ]
+  }
+}
