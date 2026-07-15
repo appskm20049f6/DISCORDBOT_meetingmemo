@@ -220,7 +220,8 @@ const writeNotifyLog = (o) => fs.writeFileSync(NOTIFYLOG_PATH, JSON.stringify(o,
 async function deletePrevForPerson(channelId, assigneeId) {
   if (!assigneeId) return;
   const log = readNotifyLog();
-  const prevId = log[`${channelId}:${assigneeId}`];
+  const prev = log[`${channelId}:${assigneeId}`];
+  const prevId = typeof prev === "string" ? prev : prev?.id; // 相容舊格式
   if (!prevId) return;
   await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${prevId}`, {
     method: "DELETE",
@@ -228,26 +229,25 @@ async function deletePrevForPerson(channelId, assigneeId) {
   }).catch(() => { /* 訊息可能已被刪，略過 */ });
 }
 
-// 推送後：記下這次的訊息 id
-function recordForPerson(channelId, assigneeId, messageId) {
+// 推送後：記下這次的訊息 id 與專案（供之後就地更新內容用）
+function recordForPerson(channelId, assigneeId, messageId, project) {
   if (!assigneeId || !messageId) return;
   const log = readNotifyLog();
-  log[`${channelId}:${assigneeId}`] = messageId;
+  log[`${channelId}:${assigneeId}`] = { id: messageId, project };
   writeNotifyLog(log);
 }
 
-// 推送某人某專案的「未完成清單」（刪舊發新、不洗版）；回傳 {count} 或 {skipped:true}
-async function notifyPersonProject(db, project, assigneeId, { dryRun = false } = {}) {
-  const channelId = resolveChannelId(project);
-  if (!channelId) throw new Error(`專案「${project}」沒有可推送的頻道`);
-  const target = assigneeId || null;
+// 組某人某專案的「未完成清單」內容；回傳 { content, count, tagged }
+function reminderContent(db, project, target) {
   const tasks = db.tasks.filter(
     (t) => (t.assigneeId || null) === target && (t.project || "未分類") === project && t.status !== "done" && t.status !== "archived"
   ).sort((a, b) => (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31"));
-  if (tasks.length === 0) return { skipped: true, count: 0 };
   const member = db.members.find((m) => m.id === target);
   const isSnowflake = target && /^\d{17,20}$/.test(target);
   const who = isSnowflake ? `<@${target}>` : member ? `**${member.name}**` : "（未分配）";
+  if (tasks.length === 0) {
+    return { content: `📋 【${project}】→ ${who}：目前無未完成任務 ✅`, count: 0, tagged: isSnowflake };
+  }
   const REC = { once: "", daily: "每日", weekly: "每週" };
   const dLabel = (t) => (t.startDate && t.dueDate ? `${t.startDate}~${t.dueDate}` : (t.dueDate || t.startDate || ""));
   const lines = tasks.map((t) => {
@@ -255,14 +255,48 @@ async function notifyPersonProject(db, project, assigneeId, { dryRun = false } =
     const rec = t.recurrence && t.recurrence !== "once" ? ` 🔁${REC[t.recurrence]}` : "";
     return `• ${t.title}${dl ? ` 📅 ${dl}` : ""}${rec}（${STATUS_LABEL[t.status]}）`;
   });
-  const content =
-    `📋 【${project}】未完成任務清單 → ${who}（共 ${tasks.length} 項）\n` + lines.join("\n") + `\n🔗 看板：${boardUrl()}`;
-  if (dryRun) return { count: tasks.length, tagged: isSnowflake, dryRun: true };
-  await deletePrevForPerson(channelId, target);
-  const msg = await sendToChannel(channelId, content);
-  recordForPerson(channelId, target, msg.id);
-  return { count: tasks.length, tagged: isSnowflake };
+  const content = `📋 【${project}】未完成任務清單 → ${who}（共 ${tasks.length} 項）\n` + lines.join("\n") + `\n🔗 看板：${boardUrl()}`;
+  return { content, count: tasks.length, tagged: isSnowflake };
 }
+
+// 推送某人某專案的「未完成清單」（刪舊發新、不洗版）；回傳 {count} 或 {skipped:true}
+async function notifyPersonProject(db, project, assigneeId, { dryRun = false } = {}) {
+  const channelId = resolveChannelId(project);
+  if (!channelId) throw new Error(`專案「${project}」沒有可推送的頻道`);
+  const target = assigneeId || null;
+  const rc = reminderContent(db, project, target);
+  if (rc.count === 0) return { skipped: true, count: 0 };
+  if (dryRun) return { count: rc.count, tagged: rc.tagged, dryRun: true };
+  await deletePrevForPerson(channelId, target);
+  const msg = await sendToChannel(channelId, rc.content);
+  recordForPerson(channelId, target, msg.id, project);
+  return { count: rc.count, tagged: rc.tagged };
+}
+
+// 就地更新所有提醒訊息的內容（不重新 tag、不洗版），讓提醒永遠與看板/網頁一致
+app.post("/api/refresh-reminders", async (req, res) => {
+  const token = process.env.DISCORD_TOKEN;
+  if (!token) return res.status(400).json({ error: "尚未設定 DISCORD_TOKEN" });
+  const db = read();
+  const log = readNotifyLog();
+  let edited = 0;
+  for (const [key, val] of Object.entries(log)) {
+    const messageId = typeof val === "string" ? val : val?.id;
+    const project = typeof val === "object" ? val.project : null;
+    if (!messageId || !project) continue; // 舊格式（無專案）略過，下次推送會補上
+    const [channelId, assigneeId] = key.split(":");
+    const rc = reminderContent(db, project, assigneeId || null);
+    try {
+      const r = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bot ${token}` },
+        body: JSON.stringify({ content: rc.content, allowed_mentions: { parse: [] } }),
+      });
+      if (r.ok) edited++;
+    } catch { /* 訊息可能已被刪，略過 */ }
+  }
+  res.json({ ok: true, edited });
+});
 
 // 整個專案一次推送（單一人）
 app.post("/api/notify-project", async (req, res) => {

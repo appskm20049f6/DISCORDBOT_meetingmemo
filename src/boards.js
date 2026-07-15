@@ -28,7 +28,7 @@ const taskLine = (t, nameOf) => {
 function buildContent(project, db) {
   const tasks = db.tasks.filter((t) => (t.project || "未分類") === project);
   const grp = { todo: [], doing: [], done: [] };
-  for (const t of tasks) (grp[t.status] || grp.todo).push(t);
+  for (const t of tasks) { if (grp[t.status]) grp[t.status].push(t); } // 已封存(archived)不顯示在看板
   grp.doing.sort(byDue);
   grp.todo.sort(byDue);
   const nameOf = (id) => db.members.find((m) => m.id === id)?.name || null;
@@ -197,9 +197,10 @@ export async function cleanupBoardChannels(client, dryRun = false) {
   for (const b of Object.values(boardState)) {
     (keep[b.channelId] = keep[b.channelId] || new Set()).add(b.messageId);
   }
-  for (const [k, mid] of Object.entries(notifylog)) {
+  for (const [k, val] of Object.entries(notifylog)) {
+    const mid = typeof val === "string" ? val : val?.id; // 相容新舊格式
     const cid = k.split(":")[0];
-    if (keep[cid]) keep[cid].add(mid); // 只清理「有看板」的頻道
+    if (mid && keep[cid]) keep[cid].add(mid); // 只清理「有看板」的頻道
   }
   let deleted = 0;
   for (const [cid, keepSet] of Object.entries(keep)) {

@@ -293,7 +293,7 @@ async function main() {
     let lastRunKey = null;
     client.once("ready", async () => {
       console.log(`已登入：${client.user.tag}`);
-      console.log(`排程時間：${[...times].sort().join(", ")}（每天定時提醒未完成任務）。看板每 10 分鐘自動更新。Ctrl+C 結束。`);
+      console.log(`排程時間：${[...times].sort().join(", ")}（週一~週五 定時提醒未完成任務）。看板每 10 分鐘自動更新。Ctrl+C 結束。`);
       // 啟動時先更新一次看板
       try { await updateBoards(client); } catch (e) { console.error("看板更新錯誤：", e.message); }
       // 每天定時收集
@@ -302,7 +302,8 @@ async function main() {
         const now = new Date();
         const hm = now.toTimeString().slice(0, 5);
         const key = now.toLocaleDateString("sv-SE") + " " + hm;
-        if (times.has(hm) && key !== lastRunKey) {
+        const dow = now.getDay(); // 0=日,6=六：週末不推送
+        if (times.has(hm) && key !== lastRunKey && dow !== 0 && dow !== 6) {
           lastRunKey = key;
           try {
             await updateBoards(client);
@@ -316,9 +317,12 @@ async function main() {
           }
         }
       }, 20000);
-      // 每 10 分鐘把網頁上的最新任務狀態同步到各群看板
+      // 每 10 分鐘把最新任務狀態同步到各群看板，並就地更新提醒訊息內容（不重新 tag）
       setInterval(async () => {
-        try { await updateBoards(client); } catch (e) { console.error("看板更新錯誤：", e.message); }
+        try {
+          await updateBoards(client);
+          await fetch(`http://localhost:${PORT}/api/refresh-reminders`, { method: "POST" }).catch(() => {});
+        } catch (e) { console.error("看板更新錯誤：", e.message); }
       }, 600000);
     });
     await client.login(token);
